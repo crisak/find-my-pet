@@ -50,7 +50,7 @@ const MOCK_PETS: Record<string, PetProfile> = {
     color: "Café / Blaco / Negro",
     weight: "~4 kg (cachorro)",
     characteristics:
-      'Soy un cachorro muy curioso y juguetón. Me encanta explorar y hacer nuevos amigos. Soy muy cariñoso y me gustan los mimos. Respondo a mi nombre "Toby" y también al "Tobis".',
+      'Soy un cachorro muy curioso y juguetón. Me encanta explorar y hacer nuevos amigos. Soy muy cariñoso y me gustan los mimos. Respondo a mi nombre "Toby" y también al "Tobis". ¡Ah, y tengo un talento especial: me tiro unos pedos épicos después de comer, no sé de dónde salen pero mi familia dice que son de campeonato! 💨😂',
     emoji: "🐶",
     heroMessage:
       "¡Hola! Soy Toby Romero 🐾 Me he perdido y necesito tu ayuda para que mis papás me encuentren. Tengo apenas unos meses de vida y estoy muy asustado. Por favor contáctalos, ellos me están buscando con mucho amor.",

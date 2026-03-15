@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { PetProfile } from '@/lib/mock-data'
@@ -12,7 +12,30 @@ interface HeroSectionProps {
   pet: PetProfile
 }
 
-// ─── Shared overlay content (badge, name, message) ───────────────────────────
+// ─── Force-play a video element (autoPlay attr isn't always enough) ───────────
+function useVideoAutoPlay(ref: React.RefObject<HTMLVideoElement | null>) {
+  useEffect(() => {
+    const video = ref.current
+    if (!video) return
+    video.muted = true // must be set before play() for autoplay policy
+    video.play().catch(() => {
+      // Autoplay was blocked — nothing to do, poster will show
+    })
+  }, [ref])
+}
+
+// ─── Gradient overlays (shared) ───────────────────────────────────────────────
+function GradientOverlays() {
+  return (
+    <>
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/55 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-tr from-amber-900/20 via-transparent to-orange-900/10 pointer-events-none" />
+    </>
+  )
+}
+
+// ─── Shared overlay content ───────────────────────────────────────────────────
 function HeroOverlay({
   pet,
   badgeRef,
@@ -42,12 +65,10 @@ function HeroOverlay({
         </div>
       </div>
 
-      {/* Spacer */}
       <div className="flex-1" />
 
       {/* Bottom: name + message card */}
       <div className="relative z-20 px-4 pb-6 flex flex-col gap-3 max-w-lg mx-auto w-full">
-        {/* Pet name + breed */}
         <div ref={overlayContentRef} className="px-1">
           <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.18em] mb-1">
             {pet.breed} · {pet.age}
@@ -60,7 +81,6 @@ function HeroOverlay({
           </div>
         </div>
 
-        {/* Message card — glassmorphism */}
         <div
           ref={cardRef}
           className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/25 shadow-2xl"
@@ -76,11 +96,7 @@ function HeroOverlay({
           </div>
         </div>
 
-        {/* Scroll hint */}
-        <div
-          ref={scrollHintRef}
-          className="flex flex-col items-center pt-1 text-white/50"
-        >
+        <div ref={scrollHintRef} className="flex flex-col items-center pt-1 text-white/50">
           <svg width="22" height="22" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
           </svg>
@@ -90,51 +106,26 @@ function HeroOverlay({
   )
 }
 
-// ─── Gradient overlays (shared) ───────────────────────────────────────────────
-function GradientOverlays() {
-  return (
-    <>
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/55 via-transparent to-transparent pointer-events-none" />
-      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-      <div className="absolute inset-0 z-10 bg-gradient-to-tr from-amber-900/20 via-transparent to-orange-900/10 pointer-events-none" />
-    </>
-  )
-}
+// ─── Horizontal video layout ──────────────────────────────────────────────────
+function HorizontalVideoHero({
+  pet, mediaRef, heroRef, badgeRef, overlayContentRef, cardRef, scrollHintRef,
+}: HeroLayoutProps) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [videoFailed, setVideoFailed] = useState(false)
+  useVideoAutoPlay(videoRef)
 
-// ─── Horizontal video / image layout ─────────────────────────────────────────
-// Video fills the full screen (object-cover). Works great for 16:9 landscape.
-function HorizontalHero({
-  pet,
-  mediaRef,
-  heroRef,
-  badgeRef,
-  overlayContentRef,
-  cardRef,
-  scrollHintRef,
-}: {
-  pet: PetProfile
-  mediaRef: React.RefObject<HTMLDivElement | null>
-  heroRef: React.RefObject<HTMLDivElement | null>
-  badgeRef: React.RefObject<HTMLDivElement | null>
-  overlayContentRef: React.RefObject<HTMLDivElement | null>
-  cardRef: React.RefObject<HTMLDivElement | null>
-  scrollHintRef: React.RefObject<HTMLDivElement | null>
-}) {
   return (
-    <section
-      ref={heroRef}
-      className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black"
-    >
-      {/* Full-bleed media */}
+    <section ref={heroRef} className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black">
       <div ref={mediaRef} className="absolute inset-0 z-0">
-        {pet.heroVideo ? (
+        {!videoFailed ? (
           <video
-            src={pet.heroVideo.url}
-            poster={pet.heroVideo.poster ?? pet.heroImage.url}
-            autoPlay
+            ref={videoRef}
+            src={pet.heroVideo!.url}
+            poster={pet.heroVideo!.poster}
             muted
             loop
             playsInline
+            onError={() => setVideoFailed(true)}
             className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
@@ -148,33 +139,103 @@ function HorizontalHero({
           />
         )}
       </div>
-
       <GradientOverlays />
-
-      <HeroOverlay
-        pet={pet}
-        badgeRef={badgeRef}
-        overlayContentRef={overlayContentRef}
-        cardRef={cardRef}
-        scrollHintRef={scrollHintRef}
-      />
+      <HeroOverlay pet={pet} badgeRef={badgeRef} overlayContentRef={overlayContentRef} cardRef={cardRef} scrollHintRef={scrollHintRef} />
     </section>
   )
 }
 
 // ─── Vertical video layout ────────────────────────────────────────────────────
-// Blurred video fills the screen → actual video centered at correct 9:16 ratio.
-// On mobile (portrait): the centered video fills the entire screen naturally.
-// On desktop (landscape): centered portrait strip with cinematic blur on sides.
 function VerticalVideoHero({
-  pet,
-  mediaRef,
-  heroRef,
-  badgeRef,
-  overlayContentRef,
-  cardRef,
-  scrollHintRef,
-}: {
+  pet, mediaRef, heroRef, badgeRef, overlayContentRef, cardRef, scrollHintRef,
+}: HeroLayoutProps) {
+  const backdropRef = useRef<HTMLVideoElement>(null)
+  const mainVideoRef = useRef<HTMLVideoElement>(null)
+  const [videoFailed, setVideoFailed] = useState(false)
+  useVideoAutoPlay(backdropRef)
+  useVideoAutoPlay(mainVideoRef)
+
+  const video = pet.heroVideo!
+
+  return (
+    <section ref={heroRef} className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black">
+
+      {videoFailed ? (
+        /* Fallback to hero image if video fails to load */
+        <div className="absolute inset-0 z-0">
+          <Image src={pet.heroImage.url} alt={pet.heroImage.alt} fill className="object-cover object-center" priority sizes="100vw" />
+        </div>
+      ) : (
+        <>
+          {/* Blurred backdrop — fills gaps on wide screens */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <video
+              ref={backdropRef}
+              src={video.url}
+              poster={video.poster}
+              muted
+              loop
+              playsInline
+              aria-hidden
+              onError={() => setVideoFailed(true)}
+              className="absolute inset-0 w-full h-full object-cover scale-110"
+              style={{ filter: 'blur(28px) brightness(0.35) saturate(1.4)' }}
+            />
+          </div>
+
+          {/* Centered portrait video */}
+          <div ref={mediaRef} className="absolute inset-0 z-0 flex items-center justify-center">
+            <video
+              ref={mainVideoRef}
+              src={video.url}
+              poster={video.poster}
+              muted
+              loop
+              playsInline
+              onError={() => setVideoFailed(true)}
+              className="h-full w-auto max-w-full object-cover"
+              style={{ aspectRatio: '9/16' }}
+            />
+          </div>
+
+          {/* Side vignette on wide screens */}
+          <div
+            className="absolute inset-0 z-10 pointer-events-none hidden md:block"
+            style={{ background: 'linear-gradient(to right, rgba(0,0,0,0.55) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.55) 100%)' }}
+          />
+        </>
+      )}
+
+      <GradientOverlays />
+      <HeroOverlay pet={pet} badgeRef={badgeRef} overlayContentRef={overlayContentRef} cardRef={cardRef} scrollHintRef={scrollHintRef} />
+    </section>
+  )
+}
+
+// ─── Image-only layout (no heroVideo defined) ─────────────────────────────────
+function ImageHero({
+  pet, mediaRef, heroRef, badgeRef, overlayContentRef, cardRef, scrollHintRef,
+}: HeroLayoutProps) {
+  return (
+    <section ref={heroRef} className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black">
+      <div ref={mediaRef} className="absolute inset-0 z-0">
+        <Image
+          src={pet.heroImage.url}
+          alt={pet.heroImage.alt}
+          fill
+          className="object-cover object-center"
+          priority
+          sizes="100vw"
+        />
+      </div>
+      <GradientOverlays />
+      <HeroOverlay pet={pet} badgeRef={badgeRef} overlayContentRef={overlayContentRef} cardRef={cardRef} scrollHintRef={scrollHintRef} />
+    </section>
+  )
+}
+
+// ─── Shared layout prop type ──────────────────────────────────────────────────
+interface HeroLayoutProps {
   pet: PetProfile
   mediaRef: React.RefObject<HTMLDivElement | null>
   heroRef: React.RefObject<HTMLDivElement | null>
@@ -182,65 +243,6 @@ function VerticalVideoHero({
   overlayContentRef: React.RefObject<HTMLDivElement | null>
   cardRef: React.RefObject<HTMLDivElement | null>
   scrollHintRef: React.RefObject<HTMLDivElement | null>
-}) {
-  const video = pet.heroVideo!
-  return (
-    <section
-      ref={heroRef}
-      className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black"
-    >
-      {/* ── Blurred backdrop (fills gaps on wide screens) ── */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        <video
-          src={video.url}
-          poster={video.poster ?? pet.heroImage.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          aria-hidden
-          className="absolute inset-0 w-full h-full object-cover scale-110"
-          style={{ filter: 'blur(28px) brightness(0.35) saturate(1.4)' }}
-        />
-      </div>
-
-      {/* ── Centered portrait video ── */}
-      <div
-        ref={mediaRef}
-        className="absolute inset-0 z-0 flex items-center justify-center"
-      >
-        <video
-          src={video.url}
-          poster={video.poster ?? pet.heroImage.url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="h-full w-auto max-w-full object-cover"
-          style={{ aspectRatio: '9/16' }}
-        />
-      </div>
-
-      {/* Subtle side vignette to blend centered video into backdrop */}
-      <div
-        className="absolute inset-0 z-10 pointer-events-none hidden md:block"
-        style={{
-          background:
-            'linear-gradient(to right, rgba(0,0,0,0.55) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.55) 100%)',
-        }}
-      />
-
-      <GradientOverlays />
-
-      <HeroOverlay
-        pet={pet}
-        badgeRef={badgeRef}
-        overlayContentRef={overlayContentRef}
-        cardRef={cardRef}
-        scrollHintRef={scrollHintRef}
-      />
-    </section>
-  )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -252,6 +254,7 @@ export default function HeroSection({ pet }: HeroSectionProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const scrollHintRef = useRef<HTMLDivElement>(null)
 
+  const hasVideo = !!pet.heroVideo
   const isVertical = pet.heroVideo?.orientation === 'vertical'
 
   useEffect(() => {
@@ -272,7 +275,7 @@ export default function HeroSection({ pet }: HeroSectionProps) {
       gsap.to(scrollHintRef.current, {
         y: 8, duration: 1.3, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: 1.8,
       })
-      // Parallax — only for image and horizontal video (vertical uses centered container)
+      // Parallax only for non-vertical (vertical video stays centered)
       if (!isVertical) {
         gsap.to(mediaRef.current, {
           y: -60, ease: 'none',
@@ -285,23 +288,15 @@ export default function HeroSection({ pet }: HeroSectionProps) {
         })
       }
     }, heroRef)
-
     return () => ctx.revert()
   }, [isVertical])
 
-  const sharedProps = {
-    pet,
-    mediaRef,
-    heroRef,
-    badgeRef,
-    overlayContentRef,
-    cardRef,
-    scrollHintRef,
+  const layoutProps: HeroLayoutProps = {
+    pet, mediaRef, heroRef, badgeRef, overlayContentRef, cardRef, scrollHintRef,
   }
 
-  if (isVertical) {
-    return <VerticalVideoHero {...sharedProps} />
-  }
-
-  return <HorizontalHero {...sharedProps} />
+  // heroVideo always takes priority over heroImage when defined
+  if (hasVideo && isVertical) return <VerticalVideoHero {...layoutProps} />
+  if (hasVideo) return <HorizontalVideoHero {...layoutProps} />
+  return <ImageHero {...layoutProps} />
 }
