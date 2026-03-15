@@ -133,8 +133,8 @@ const MOCK_PETS: Record<string, PetProfile> = {
       height: 600,
     },
     heroVideo: {
-      url: "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/toby-video.mov",
-      orientation: "vertical",
+      url: "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/toby-2.mp4",
+      orientation: "horizontal",
       poster: "Soy Toby ;)",
     },
     photos: [
