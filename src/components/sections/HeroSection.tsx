@@ -12,128 +12,296 @@ interface HeroSectionProps {
   pet: PetProfile
 }
 
+// ─── Shared overlay content (badge, name, message) ───────────────────────────
+function HeroOverlay({
+  pet,
+  badgeRef,
+  overlayContentRef,
+  cardRef,
+  scrollHintRef,
+}: {
+  pet: PetProfile
+  badgeRef: React.RefObject<HTMLDivElement | null>
+  overlayContentRef: React.RefObject<HTMLDivElement | null>
+  cardRef: React.RefObject<HTMLDivElement | null>
+  scrollHintRef: React.RefObject<HTMLDivElement | null>
+}) {
+  return (
+    <>
+      {/* LOST badge — top center */}
+      <div className="relative z-20 flex justify-center pt-5 px-4">
+        <div
+          ref={badgeRef}
+          className="inline-flex items-center gap-2.5 bg-red-500 text-white px-5 py-2.5 rounded-full text-sm font-black tracking-wide shadow-2xl shadow-red-900/40"
+        >
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
+          </span>
+          MASCOTA PERDIDA
+        </div>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Bottom: name + message card */}
+      <div className="relative z-20 px-4 pb-6 flex flex-col gap-3 max-w-lg mx-auto w-full">
+        {/* Pet name + breed */}
+        <div ref={overlayContentRef} className="px-1">
+          <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.18em] mb-1">
+            {pet.breed} · {pet.age}
+          </p>
+          <div className="flex items-end justify-between gap-3">
+            <h1 className="text-white text-[2.6rem] font-black leading-none drop-shadow-xl">
+              {pet.name}
+            </h1>
+            <span className="text-4xl drop-shadow-lg flex-shrink-0 pb-1">{pet.emoji}</span>
+          </div>
+        </div>
+
+        {/* Message card — glassmorphism */}
+        <div
+          ref={cardRef}
+          className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/25 shadow-2xl"
+        >
+          <p className="text-white/95 leading-relaxed text-sm font-medium">
+            {pet.heroMessage}
+          </p>
+          <div className="mt-3 pt-3 border-t border-white/20 flex items-center gap-2">
+            <span className="text-base flex-shrink-0">💛</span>
+            <p className="text-amber-200 text-xs font-semibold">
+              Gracias por ayudarme a volver a casa.
+            </p>
+          </div>
+        </div>
+
+        {/* Scroll hint */}
+        <div
+          ref={scrollHintRef}
+          className="flex flex-col items-center pt-1 text-white/50"
+        >
+          <svg width="22" height="22" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+          </svg>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Gradient overlays (shared) ───────────────────────────────────────────────
+function GradientOverlays() {
+  return (
+    <>
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/55 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 z-10 bg-gradient-to-tr from-amber-900/20 via-transparent to-orange-900/10 pointer-events-none" />
+    </>
+  )
+}
+
+// ─── Horizontal video / image layout ─────────────────────────────────────────
+// Video fills the full screen (object-cover). Works great for 16:9 landscape.
+function HorizontalHero({
+  pet,
+  mediaRef,
+  heroRef,
+  badgeRef,
+  overlayContentRef,
+  cardRef,
+  scrollHintRef,
+}: {
+  pet: PetProfile
+  mediaRef: React.RefObject<HTMLDivElement | null>
+  heroRef: React.RefObject<HTMLDivElement | null>
+  badgeRef: React.RefObject<HTMLDivElement | null>
+  overlayContentRef: React.RefObject<HTMLDivElement | null>
+  cardRef: React.RefObject<HTMLDivElement | null>
+  scrollHintRef: React.RefObject<HTMLDivElement | null>
+}) {
+  return (
+    <section
+      ref={heroRef}
+      className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black"
+    >
+      {/* Full-bleed media */}
+      <div ref={mediaRef} className="absolute inset-0 z-0">
+        {pet.heroVideo ? (
+          <video
+            src={pet.heroVideo.url}
+            poster={pet.heroVideo.poster ?? pet.heroImage.url}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover object-center"
+          />
+        ) : (
+          <Image
+            src={pet.heroImage.url}
+            alt={pet.heroImage.alt}
+            fill
+            className="object-cover object-center"
+            priority
+            sizes="100vw"
+          />
+        )}
+      </div>
+
+      <GradientOverlays />
+
+      <HeroOverlay
+        pet={pet}
+        badgeRef={badgeRef}
+        overlayContentRef={overlayContentRef}
+        cardRef={cardRef}
+        scrollHintRef={scrollHintRef}
+      />
+    </section>
+  )
+}
+
+// ─── Vertical video layout ────────────────────────────────────────────────────
+// Blurred video fills the screen → actual video centered at correct 9:16 ratio.
+// On mobile (portrait): the centered video fills the entire screen naturally.
+// On desktop (landscape): centered portrait strip with cinematic blur on sides.
+function VerticalVideoHero({
+  pet,
+  mediaRef,
+  heroRef,
+  badgeRef,
+  overlayContentRef,
+  cardRef,
+  scrollHintRef,
+}: {
+  pet: PetProfile
+  mediaRef: React.RefObject<HTMLDivElement | null>
+  heroRef: React.RefObject<HTMLDivElement | null>
+  badgeRef: React.RefObject<HTMLDivElement | null>
+  overlayContentRef: React.RefObject<HTMLDivElement | null>
+  cardRef: React.RefObject<HTMLDivElement | null>
+  scrollHintRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const video = pet.heroVideo!
+  return (
+    <section
+      ref={heroRef}
+      className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black"
+    >
+      {/* ── Blurred backdrop (fills gaps on wide screens) ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <video
+          src={video.url}
+          poster={video.poster ?? pet.heroImage.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden
+          className="absolute inset-0 w-full h-full object-cover scale-110"
+          style={{ filter: 'blur(28px) brightness(0.35) saturate(1.4)' }}
+        />
+      </div>
+
+      {/* ── Centered portrait video ── */}
+      <div
+        ref={mediaRef}
+        className="absolute inset-0 z-0 flex items-center justify-center"
+      >
+        <video
+          src={video.url}
+          poster={video.poster ?? pet.heroImage.url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="h-full w-auto max-w-full object-cover"
+          style={{ aspectRatio: '9/16' }}
+        />
+      </div>
+
+      {/* Subtle side vignette to blend centered video into backdrop */}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none hidden md:block"
+        style={{
+          background:
+            'linear-gradient(to right, rgba(0,0,0,0.55) 0%, transparent 18%, transparent 82%, rgba(0,0,0,0.55) 100%)',
+        }}
+      />
+
+      <GradientOverlays />
+
+      <HeroOverlay
+        pet={pet}
+        badgeRef={badgeRef}
+        overlayContentRef={overlayContentRef}
+        cardRef={cardRef}
+        scrollHintRef={scrollHintRef}
+      />
+    </section>
+  )
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export default function HeroSection({ pet }: HeroSectionProps) {
   const heroRef = useRef<HTMLDivElement>(null)
   const badgeRef = useRef<HTMLDivElement>(null)
-  const photoRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const mediaRef = useRef<HTMLDivElement>(null)
+  const overlayContentRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
   const scrollHintRef = useRef<HTMLDivElement>(null)
+
+  const isVertical = pet.heroVideo?.orientation === 'vertical'
 
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.from(badgeRef.current, {
-        scale: 0.5, opacity: 0, duration: 0.6, ease: 'back.out(2)', delay: 0.2,
+        scale: 0.4, opacity: 0, duration: 0.7, ease: 'back.out(2.5)', delay: 0.3,
       })
-      gsap.from(photoRef.current, {
-        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.35,
+      gsap.from(mediaRef.current, {
+        scale: 1.06, opacity: 0, duration: 1.1, ease: 'power3.out', delay: 0.1,
       })
-      gsap.from(contentRef.current, {
-        y: 25, opacity: 0, duration: 0.7, ease: 'power3.out', delay: 0.6,
+      gsap.from(overlayContentRef.current, {
+        y: 30, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.55,
       })
-      gsap.from(scrollHintRef.current, { opacity: 0, duration: 1, delay: 1.4 })
+      gsap.from(cardRef.current, {
+        y: 40, opacity: 0, duration: 0.75, ease: 'power3.out', delay: 0.75,
+      })
+      gsap.from(scrollHintRef.current, { opacity: 0, duration: 1, delay: 1.5 })
       gsap.to(scrollHintRef.current, {
-        y: 7, duration: 1.2, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: 1.7,
+        y: 8, duration: 1.3, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: 1.8,
       })
-      gsap.to(photoRef.current, {
-        y: -40, ease: 'none',
-        scrollTrigger: {
-          trigger: heroRef.current,
-          start: 'top top',
-          end: 'bottom top',
-          scrub: 1.5,
-        },
-      })
+      // Parallax — only for image and horizontal video (vertical uses centered container)
+      if (!isVertical) {
+        gsap.to(mediaRef.current, {
+          y: -60, ease: 'none',
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: 2,
+          },
+        })
+      }
     }, heroRef)
 
     return () => ctx.revert()
-  }, [])
+  }, [isVertical])
 
-  return (
-    <section
-      ref={heroRef}
-      className="relative flex flex-col items-center overflow-hidden bg-gradient-to-b from-amber-50 via-orange-50 to-amber-100 px-4 pt-4 pb-10"
-    >
-      {/* Ambient blobs */}
-      <div className="absolute top-[-60px] right-[-60px] w-72 h-72 rounded-full bg-amber-200/40 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-40px] left-[-40px] w-56 h-56 rounded-full bg-orange-200/35 blur-3xl pointer-events-none" />
+  const sharedProps = {
+    pet,
+    mediaRef,
+    heroRef,
+    badgeRef,
+    overlayContentRef,
+    cardRef,
+    scrollHintRef,
+  }
 
-      {/* Subtle paw prints */}
-      <div className="absolute top-14 left-5 text-2xl opacity-[0.06] -rotate-[20deg] select-none pointer-events-none">🐾</div>
-      <div className="absolute top-24 right-6 text-xl opacity-[0.06] rotate-[15deg] select-none pointer-events-none">🐾</div>
-      <div className="absolute bottom-28 left-10 text-3xl opacity-[0.06] rotate-[25deg] select-none pointer-events-none">🐾</div>
-      <div className="absolute bottom-40 right-5 text-xl opacity-[0.06] -rotate-[10deg] select-none pointer-events-none">🐾</div>
+  if (isVertical) {
+    return <VerticalVideoHero {...sharedProps} />
+  }
 
-      {/* LOST badge */}
-      <div
-        ref={badgeRef}
-        className="mb-4 relative inline-flex items-center gap-2 bg-red-500 text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-red-200/60 z-10"
-      >
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-        </span>
-        MASCOTA PERDIDA
-      </div>
-
-      {/* Hero photo card */}
-      <div ref={photoRef} className="w-full max-w-sm mx-auto mb-5 relative z-10">
-        <div className="relative rounded-[24px] overflow-hidden shadow-2xl shadow-amber-300/40 ring-4 ring-white/70">
-          {/* Photo */}
-          <div className="relative aspect-[4/3] bg-amber-100">
-            <Image
-              src={pet.heroImage.url}
-              alt={pet.heroImage.alt}
-              fill
-              className="object-cover"
-              priority
-              sizes="(max-width: 640px) 100vw, 384px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-amber-950/60 via-amber-900/10 to-transparent" />
-            {/* Name overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-white/75 text-[11px] font-bold uppercase tracking-widest mb-1">
-                    {pet.breed} · {pet.age}
-                  </p>
-                  <h1 className="text-white text-[2rem] font-extrabold leading-none drop-shadow-lg">
-                    {pet.name}
-                  </h1>
-                </div>
-                <span className="text-3xl drop-shadow-md">{pet.emoji}</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Message card */}
-      <div
-        ref={contentRef}
-        className="w-full max-w-sm mx-auto bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg shadow-amber-100/50 border border-amber-100/80 z-10"
-      >
-        <p className="text-center text-amber-900 leading-relaxed text-sm font-medium">
-          {pet.heroMessage}
-        </p>
-        <div className="mt-3 pt-3 border-t border-amber-100 flex items-center justify-center gap-1.5">
-          <span className="text-base">💛</span>
-          <p className="text-amber-500 text-xs font-semibold">
-            Gracias por ayudarme a volver a casa.
-          </p>
-        </div>
-      </div>
-
-      {/* Scroll hint */}
-      <div
-        ref={scrollHintRef}
-        className="mt-6 flex flex-col items-center gap-1 text-amber-400/80 z-10"
-      >
-        <span className="text-[9px] font-bold tracking-[0.2em] uppercase">Ver más</span>
-        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-        </svg>
-      </div>
-    </section>
-  )
+  return <HorizontalHero {...sharedProps} />
 }

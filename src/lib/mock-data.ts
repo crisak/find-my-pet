@@ -12,6 +12,12 @@ export interface PetPhoto {
   height: number;
 }
 
+export interface HeroVideo {
+  url: string; // Direct video URL (mp4, webm, etc.)
+  orientation: "horizontal" | "vertical"; // Horizontal = 16:9 landscape, Vertical = 9:16 portrait
+  poster?: string; // Optional thumbnail shown before video loads
+}
+
 export interface PetProfile {
   id: string;
   name: string;
@@ -24,6 +30,7 @@ export interface PetProfile {
   emoji: string;
   heroMessage: string;
   heroImage: PetPhoto;
+  heroVideo?: HeroVideo; // Optional — if present, video is shown in hero instead of image
   photos: PetPhoto[];
   owner: PetOwner;
 }
@@ -43,15 +50,21 @@ const MOCK_PETS: Record<string, PetProfile> = {
     color: "Café / Blaco / Negro",
     weight: "~4 kg (cachorro)",
     characteristics:
-      'Cachorro muy curioso y juguetón. Le encanta explorar y hacer nuevos amigos. Es muy cariñoso y le gustan los mimos. Responde a su nombre "Toby".',
+      'Soy un cachorro muy curioso y juguetón. Me encanta explorar y hacer nuevos amigos. Soy muy cariñoso y me gustan los mimos. Respondo a mi nombre "Toby" y también al "Tobis".',
     emoji: "🐶",
     heroMessage:
-      "Hola, me llamo Toby Romero y tengo apenas unos meses de vida. Probablemente estoy perdido. Por favor contacta a mi familia, ellos me están buscando con mucho amor y están muy preocupados por mí.",
+      "¡Hola! Soy Toby Romero 🐾 Me he perdido y necesito tu ayuda para que mis papás me encuentren. Tengo apenas unos meses de vida y estoy muy asustado. Por favor contáctalos, ellos me están buscando con mucho amor.",
     heroImage: {
       url: "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/toby-1.png",
       alt: "Toby Romero — foto principal",
       width: 800,
       height: 600,
+    },
+    heroVideo: {
+      url: "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/hero-video.mp4",
+      orientation: "vertical",
+      poster:
+        "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/toby-1.png",
     },
     photos: [
       {
@@ -109,7 +122,7 @@ const MOCK_PETS: Record<string, PetProfile> = {
     color: "Negro",
     weight: "22 kg",
     characteristics:
-      "Muy juguetona y energética. Le gustan los paseos largos. Es muy obediente y cariñosa con los niños.",
+      "Muy juguetona y energética. Le gustan los paseos largos. Es muy obediente y cariñosa con los niños. Tambien me tiro muchos pedos 💨 cuando como mal.",
     emoji: "🐩",
     heroMessage:
       "Hola, soy Luna y me perdí. Por favor ayúdame a volver con mi familia. Ellos me están buscando con mucho amor.",
@@ -118,6 +131,11 @@ const MOCK_PETS: Record<string, PetProfile> = {
       alt: "Luna — foto principal",
       width: 800,
       height: 600,
+    },
+    heroVideo: {
+      url: "https://find-my-pet-dev.s3.us-east-1.amazonaws.com/550e8400-e29b-41d4-a716-446655440000/toby-video.mov",
+      orientation: "vertical",
+      poster: "Soy Toby ;)",
     },
     photos: [
       {

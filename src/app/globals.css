@@ -22,14 +22,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-display), 'Playfair Display', Georgia, serif;
-}
-
-.font-display {
-  font-family: var(--font-display), 'Playfair Display', Georgia, serif;
-}
-
 .font-body {
   font-family: var(--font-body), 'Nunito', system-ui, sans-serif;
 }
