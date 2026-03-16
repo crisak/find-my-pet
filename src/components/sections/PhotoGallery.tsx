@@ -12,18 +12,58 @@ interface PhotoGalleryProps {
   pet: PetProfile
 }
 
-function Lightbox({ photo, onClose }: { photo: PetPhoto; onClose: () => void }) {
+function Lightbox({
+  photos,
+  initialIndex,
+  onClose,
+}: {
+  photos: PetPhoto[]
+  initialIndex: number
+  onClose: () => void
+}) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const touchStartX = useRef<number | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(initialIndex)
+  const prefersReducedMotion = useRef(false)
+
+  const photo = photos[currentIndex]
+  const hasPrev = currentIndex > 0
+  const hasNext = currentIndex < photos.length - 1
+
+  const animateSlide = useCallback((direction: 'prev' | 'next') => {
+    if (prefersReducedMotion.current || !contentRef.current) return
+    const xOut = direction === 'next' ? -30 : 30
+    const xIn = direction === 'next' ? 30 : -30
+    gsap.fromTo(contentRef.current,
+      { opacity: 1, x: 0 },
+      { opacity: 0, x: xOut, duration: 0.15, ease: 'power2.in', onComplete: () => {
+        gsap.fromTo(contentRef.current, { opacity: 0, x: xIn }, { opacity: 1, x: 0, duration: 0.2, ease: 'cubic-bezier(0.22, 1, 0.36, 1)' })
+      }}
+    )
+  }, [])
+
+  const goTo = useCallback((index: number) => {
+    const direction = index > currentIndex ? 'next' : 'prev'
+    animateSlide(direction)
+    setCurrentIndex(index)
+  }, [currentIndex, animateSlide])
+
+  const goPrev = useCallback(() => { if (hasPrev) goTo(currentIndex - 1) }, [hasPrev, currentIndex, goTo])
+  const goNext = useCallback(() => { if (hasNext) goTo(currentIndex + 1) }, [hasNext, currentIndex, goTo])
 
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    prefersReducedMotion.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') goPrev()
+      if (e.key === 'ArrowRight') goNext()
+    }
     document.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
 
-    // [fix] Lightbox entrance animation (ui-animation: animate to clarify cause/effect)
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!prefersReducedMotion) {
+    if (!prefersReducedMotion.current) {
       gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' })
       gsap.fromTo(contentRef.current, { opacity: 0, scale: 0.95, y: 12 }, {
         opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
@@ -34,7 +74,7 @@ function Lightbox({ photo, onClose }: { photo: PetPhoto; onClose: () => void }) 
       document.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
     }
-  }, [onClose])
+  }, [onClose, goPrev, goNext])
 
   return (
     <div
@@ -42,17 +82,57 @@ function Lightbox({ photo, onClose }: { photo: PetPhoto; onClose: () => void }) 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
       onClick={onClose}
     >
+      {/* Close */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-150 text-xl"
+        className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-150 text-xl z-10"
         aria-label="Cerrar"
       >
         ✕
       </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm font-medium tabular-nums">
+        {currentIndex + 1} / {photos.length}
+      </div>
+
+      {/* Prev button */}
+      {hasPrev && (
+        <button
+          onClick={(e) => { e.stopPropagation(); goPrev() }}
+          className="absolute left-3 md:left-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-150 z-10"
+          aria-label="Foto anterior"
+        >
+          ‹
+        </button>
+      )}
+
+      {/* Next button */}
+      {hasNext && (
+        <button
+          onClick={(e) => { e.stopPropagation(); goNext() }}
+          className="absolute right-3 md:right-6 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-150 z-10"
+          aria-label="Foto siguiente"
+        >
+          ›
+        </button>
+      )}
+
+      {/* Image */}
       <div
         ref={contentRef}
         className="relative max-w-lg w-full max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return
+          const delta = touchStartX.current - e.changedTouches[0].clientX
+          if (Math.abs(delta) > 40) {
+            if (delta > 0) goNext()
+            else goPrev()
+          }
+          touchStartX.current = null
+        }}
       >
         <Image
           src={photo.url}
@@ -74,8 +154,8 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLDivElement>(null)
-  const [selectedPhoto, setSelectedPhoto] = useState<PetPhoto | null>(null)
-  const handleClose = useCallback(() => setSelectedPhoto(null), [])
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  const handleClose = useCallback(() => setSelectedIndex(null), [])
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -133,7 +213,7 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
 
   return (
     <>
-      {selectedPhoto && <Lightbox photo={selectedPhoto} onClose={handleClose} />}
+      {selectedIndex !== null && <Lightbox photos={pet.photos} initialIndex={selectedIndex} onClose={handleClose} />}
     <section
       ref={sectionRef}
       className="relative py-12 px-4 bg-gradient-to-b from-amber-100 to-orange-50 overflow-hidden"
@@ -167,7 +247,7 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
             >
               <button
                 type="button"
-                onClick={() => setSelectedPhoto(photo)}
+                onClick={() => setSelectedIndex(index)}
                 className="w-full relative aspect-square rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-zoom-in group bg-amber-100 block"
                 aria-label={`Ver ${photo.alt} en tamaño completo`}
               >
