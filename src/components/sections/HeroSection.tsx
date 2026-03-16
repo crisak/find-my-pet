@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { PetProfile } from '@/lib/mock-data'
@@ -22,6 +22,35 @@ function useVideoAutoPlay(ref: React.RefObject<HTMLVideoElement | null>) {
       // Autoplay was blocked — nothing to do, poster will show
     })
   }, [ref])
+}
+
+// ─── Pause/Play button ────────────────────────────────────────────────────────
+function VideoPauseButton({
+  isPlaying,
+  onToggle,
+}: {
+  isPlaying: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-label={isPlaying ? 'Pausar video' : 'Reproducir video'}
+      className="absolute bottom-[88px] md:bottom-8 right-4 z-30 w-9 h-9 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-md border border-white/20 text-white/80 hover:text-white hover:bg-black/50 transition-colors duration-150"
+    >
+      {isPlaying ? (
+        // Pause icon
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+          <path fillRule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7 0a.75.75 0 01.75-.75H16a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75h-1.5a.75.75 0 01-.75-.75V5.25z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        // Play icon
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 translate-x-[1px]">
+          <path fillRule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clipRule="evenodd" />
+        </svg>
+      )}
+    </button>
+  )
 }
 
 // ─── Gradient overlays (shared) ───────────────────────────────────────────────
@@ -81,9 +110,10 @@ function HeroOverlay({
           </div>
         </div>
 
+        {/* [change] More blur: backdrop-blur-md → backdrop-blur-xl, bg opacity 15% → 25% */}
         <div
           ref={cardRef}
-          className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/25 shadow-2xl"
+          className="bg-white/20 backdrop-blur-xl rounded-2xl p-4 border border-white/30 shadow-2xl"
         >
           <p className="text-white/95 leading-relaxed text-sm font-medium">
             {pet.heroMessage}
@@ -112,7 +142,20 @@ function HorizontalVideoHero({
 }: HeroLayoutProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoFailed, setVideoFailed] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(true)
   useVideoAutoPlay(videoRef)
+
+  const togglePlay = useCallback(() => {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) {
+      video.play().catch(() => {})
+      setIsPlaying(true)
+    } else {
+      video.pause()
+      setIsPlaying(false)
+    }
+  }, [])
 
   return (
     <section ref={heroRef} className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black">
@@ -141,6 +184,7 @@ function HorizontalVideoHero({
       </div>
       <GradientOverlays />
       <HeroOverlay pet={pet} badgeRef={badgeRef} overlayContentRef={overlayContentRef} cardRef={cardRef} scrollHintRef={scrollHintRef} />
+      {!videoFailed && <VideoPauseButton isPlaying={isPlaying} onToggle={togglePlay} />}
     </section>
   )
 }
@@ -152,10 +196,26 @@ function VerticalVideoHero({
   const backdropRef = useRef<HTMLVideoElement>(null)
   const mainVideoRef = useRef<HTMLVideoElement>(null)
   const [videoFailed, setVideoFailed] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(true)
   useVideoAutoPlay(backdropRef)
   useVideoAutoPlay(mainVideoRef)
 
   const video = pet.heroVideo!
+
+  const togglePlay = useCallback(() => {
+    const main = mainVideoRef.current
+    const backdrop = backdropRef.current
+    if (!main) return
+    if (main.paused) {
+      main.play().catch(() => {})
+      backdrop?.play().catch(() => {})
+      setIsPlaying(true)
+    } else {
+      main.pause()
+      backdrop?.pause()
+      setIsPlaying(false)
+    }
+  }, [])
 
   return (
     <section ref={heroRef} className="relative min-h-[95dvh] flex flex-col overflow-hidden bg-black">
@@ -208,6 +268,7 @@ function VerticalVideoHero({
 
       <GradientOverlays />
       <HeroOverlay pet={pet} badgeRef={badgeRef} overlayContentRef={overlayContentRef} cardRef={cardRef} scrollHintRef={scrollHintRef} />
+      {!videoFailed && <VideoPauseButton isPlaying={isPlaying} onToggle={togglePlay} />}
     </section>
   )
 }
@@ -258,23 +319,46 @@ export default function HeroSection({ pet }: HeroSectionProps) {
   const isVertical = pet.heroVideo?.orientation === 'vertical'
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Set final state immediately when reduced motion is preferred
+    if (prefersReducedMotion) {
+      gsap.set([badgeRef.current, mediaRef.current, overlayContentRef.current, cardRef.current, scrollHintRef.current], { opacity: 1, y: 0, x: 0, scale: 1 })
+      return
+    }
+
     const ctx = gsap.context(() => {
+      // [fix] Badge from scale(0.95) — never below 0.95 (emilkowal: transform-never-scale-zero)
       gsap.from(badgeRef.current, {
-        scale: 0.4, opacity: 0, duration: 0.7, ease: 'back.out(2.5)', delay: 0.3,
+        scale: 0.95, opacity: 0, duration: 0.5, ease: 'cubic-bezier(0.22, 1, 0.36, 1)', delay: 0.3,
       })
       gsap.from(mediaRef.current, {
-        scale: 1.06, opacity: 0, duration: 1.1, ease: 'power3.out', delay: 0.1,
+        scale: 1.04, opacity: 0, duration: 0.6, ease: 'cubic-bezier(0.25, 1, 0.5, 1)', delay: 0.1,
       })
       gsap.from(overlayContentRef.current, {
-        y: 30, opacity: 0, duration: 0.8, ease: 'power3.out', delay: 0.55,
+        y: 24, opacity: 0, duration: 0.5, ease: 'cubic-bezier(0.22, 1, 0.36, 1)', delay: 0.4,
       })
       gsap.from(cardRef.current, {
-        y: 40, opacity: 0, duration: 0.75, ease: 'power3.out', delay: 0.75,
+        y: 28, opacity: 0, duration: 0.45, ease: 'cubic-bezier(0.22, 1, 0.36, 1)', delay: 0.55,
       })
-      gsap.from(scrollHintRef.current, { opacity: 0, duration: 1, delay: 1.5 })
-      gsap.to(scrollHintRef.current, {
-        y: 8, duration: 1.3, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: 1.8,
+      gsap.from(scrollHintRef.current, { opacity: 0, duration: 0.6, delay: 1.2 })
+
+      // [fix] Pause infinite loop when hero is off-screen (ui-animation: pause looping off-screen)
+      let scrollHintTween: gsap.core.Tween | null = null
+      ScrollTrigger.create({
+        trigger: heroRef.current,
+        start: 'top bottom',
+        end: 'bottom top',
+        onEnter: () => {
+          scrollHintTween = gsap.to(scrollHintRef.current, {
+            y: 8, duration: 1.3, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: 0.5,
+          })
+        },
+        onLeave: () => scrollHintTween?.pause(),
+        onEnterBack: () => scrollHintTween?.resume(),
+        onLeaveBack: () => scrollHintTween?.pause(),
       })
+
       // Parallax only for non-vertical (vertical video stays centered)
       if (!isVertical) {
         gsap.to(mediaRef.current, {

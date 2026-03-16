@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { gsap } from 'gsap'
 
 interface GeolocationBannerProps {
@@ -13,26 +13,22 @@ type GeoStatus = 'idle' | 'requesting' | 'granted' | 'denied' | 'error'
 export default function GeolocationBanner({ petName, petId }: GeolocationBannerProps) {
   const [status, setStatus] = useState<GeoStatus>('idle')
   const [visible, setVisible] = useState(true)
+  // [fix] Use ref instead of class selector (gsap best practice)
+  const bannerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    // Auto-request after a short delay for better UX
-    const timer = setTimeout(() => {
-      requestLocation()
-    }, 2000)
-
-    return () => clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // [fix] Removed auto-request — geolocation should only be triggered by user interaction
+  // Requesting automatically after 2s is invasive UX (best practice: user-gesture only)
 
   useEffect(() => {
     if (status === 'granted') {
       // Auto-hide after success
       const timer = setTimeout(() => {
-        gsap.to('.geo-banner', {
+        // [fix] ease: 'power2.out' instead of 'power2.in' — ease-in feels slow (ui-animation: avoid ease-in)
+        gsap.to(bannerRef.current, {
           y: -80,
           opacity: 0,
-          duration: 0.5,
-          ease: 'power2.in',
+          duration: 0.35,
+          ease: 'power2.out',
           onComplete: () => setVisible(false),
         })
       }, 4000)
@@ -106,7 +102,8 @@ export default function GeolocationBanner({ petName, petId }: GeolocationBannerP
 
   return (
     <div
-      className={`geo-banner fixed top-0 left-0 right-0 z-50 ${config.bg} text-white px-4 py-2 flex items-center justify-between gap-3 shadow-lg`}
+      ref={bannerRef}
+      className={`fixed top-0 left-0 right-0 z-50 ${config.bg} text-white px-4 py-2 flex items-center justify-between gap-3 shadow-lg`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-lg flex-shrink-0">{config.icon}</span>

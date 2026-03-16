@@ -11,7 +11,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  /* scroll-behavior handled by Lenis smooth scroll */
 }
 
 body {
@@ -52,6 +52,35 @@ body {
 
 .contact-button-ripple {
   animation: glassmorphic-ripple 0.6s ease-out;
+}
+
+/* ─── Button ripple click effect ────────────────────────── */
+.ripple {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  transform: scale(0);
+  animation: ripple-anim 0.6s ease-out;
+  pointer-events: none;
+}
+
+@keyframes ripple-anim {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* ─── Hover transitions only for devices that support hover ─ */
+@media (hover: hover) and (pointer: fine) {
+  .photo-card button {
+    transition-property: box-shadow;
+    transition-duration: 200ms;
+    transition-timing-function: ease;
+  }
+  .contact-btn {
+    transition-property: background-color, box-shadow, transform;
+  }
 }
 
 /* ─── Scroll-driven reduction ───────────────────────────── */

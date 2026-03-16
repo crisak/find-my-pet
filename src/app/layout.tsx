@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
+import SmoothScroll from '@/components/SmoothScroll'
 import './globals.css'
 
 const nunito = Nunito({
@@ -22,7 +23,8 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={nunito.variable}>
-      <body className="antialiased font-body bg-amber-50 text-amber-900 scroll-smooth">
+      <body className="antialiased font-body bg-amber-50 text-amber-900">
+        <SmoothScroll />
         {children}
       </body>
     </html>

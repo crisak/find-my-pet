@@ -13,10 +13,23 @@ interface PhotoGalleryProps {
 }
 
 function Lightbox({ photo, onClose }: { photo: PetPhoto; onClose: () => void }) {
+  const backdropRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handleKey)
     document.body.style.overflow = 'hidden'
+
+    // [fix] Lightbox entrance animation (ui-animation: animate to clarify cause/effect)
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!prefersReducedMotion) {
+      gsap.fromTo(backdropRef.current, { opacity: 0 }, { opacity: 1, duration: 0.2, ease: 'none' })
+      gsap.fromTo(contentRef.current, { opacity: 0, scale: 0.95, y: 12 }, {
+        opacity: 1, scale: 1, y: 0, duration: 0.3, ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      })
+    }
+
     return () => {
       document.removeEventListener('keydown', handleKey)
       document.body.style.overflow = ''
@@ -25,17 +38,19 @@ function Lightbox({ photo, onClose }: { photo: PetPhoto; onClose: () => void }) 
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors text-xl"
+        className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center transition-colors duration-150 text-xl"
         aria-label="Cerrar"
       >
         ✕
       </button>
       <div
+        ref={contentRef}
         className="relative max-w-lg w-full max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -63,6 +78,18 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
   const handleClose = useCallback(() => setSelectedPhoto(null), [])
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Set final state immediately when reduced motion is preferred
+    if (prefersReducedMotion) {
+      if (titleRef.current) gsap.set(titleRef.current, { opacity: 1, y: 0 })
+      if (gridRef.current) {
+        const cards = gridRef.current.querySelectorAll('.photo-card')
+        gsap.set(cards, { opacity: 1, y: 0, scale: 1 })
+      }
+      return
+    }
+
     const ctx = gsap.context(() => {
       // Title reveal
       gsap.from(titleRef.current, {
@@ -71,10 +98,11 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
           start: 'top 85%',
           toggleActions: 'play none none none',
         },
-        y: 30,
+        y: 24,
         opacity: 0,
-        duration: 0.7,
-        ease: 'power3.out',
+        // [fix] Reduced from 700ms to 500ms
+        duration: 0.5,
+        ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
       })
 
       // Grid items stagger
@@ -86,9 +114,11 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
               opacity: 1,
               y: 0,
               scale: 1,
-              stagger: 0.08,
-              duration: 0.65,
-              ease: 'back.out(1.4)',
+              // [fix] Stagger reduced from 80ms to 40ms (ui-animation: stagger <= 50ms)
+              stagger: 0.04,
+              // [fix] Duration reduced from 650ms to 400ms
+              duration: 0.4,
+              ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
               overwrite: true,
             })
           },
@@ -138,7 +168,7 @@ export default function PhotoGallery({ pet }: PhotoGalleryProps) {
               <button
                 type="button"
                 onClick={() => setSelectedPhoto(photo)}
-                className="w-full relative aspect-square rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 cursor-zoom-in group bg-amber-100 block"
+                className="w-full relative aspect-square rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-300 cursor-zoom-in group bg-amber-100 block"
                 aria-label={`Ver ${photo.alt} en tamaño completo`}
               >
                 <Image

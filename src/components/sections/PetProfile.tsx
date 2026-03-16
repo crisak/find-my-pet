@@ -24,16 +24,25 @@ export default function PetProfile({ pet }: PetProfileProps) {
   const sectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    // Set final state immediately when reduced motion is preferred
+    if (prefersReducedMotion) {
+      gsap.set(['.profile-title', '.info-card', '.characteristics-card'], { opacity: 1, x: 0, y: 0 })
+      return
+    }
+
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.profile-title',
-        { x: -40, opacity: 0 },
+        { x: -28, opacity: 0 },
         {
           scrollTrigger: { trigger: '.profile-title', start: 'top 90%', toggleActions: 'play none none none' },
           x: 0,
           opacity: 1,
-          duration: 0.7,
-          ease: 'power3.out',
+          // [fix] Reduced from 700ms to 500ms
+          duration: 0.5,
+          ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
           immediateRender: false,
         }
       )
@@ -42,14 +51,15 @@ export default function PetProfile({ pet }: PetProfileProps) {
       cards.forEach((card, i) => {
         gsap.fromTo(
           card,
-          { x: i % 2 === 0 ? -30 : 30, opacity: 0 },
+          { x: i % 2 === 0 ? -20 : 20, opacity: 0 },
           {
             scrollTrigger: { trigger: card, start: 'top 92%', toggleActions: 'play none none none' },
             x: 0,
             opacity: 1,
-            duration: 0.55,
-            delay: i * 0.06,
-            ease: 'power2.out',
+            // [fix] Reduced from 550ms to 350ms; stagger delay reduced
+            duration: 0.35,
+            delay: i * 0.04,
+            ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
             immediateRender: false,
           }
         )
@@ -57,13 +67,14 @@ export default function PetProfile({ pet }: PetProfileProps) {
 
       gsap.fromTo(
         '.characteristics-card',
-        { y: 30, opacity: 0 },
+        { y: 20, opacity: 0 },
         {
           scrollTrigger: { trigger: '.characteristics-card', start: 'top 92%', toggleActions: 'play none none none' },
           y: 0,
           opacity: 1,
-          duration: 0.7,
-          ease: 'power3.out',
+          // [fix] Reduced from 700ms to 450ms
+          duration: 0.45,
+          ease: 'cubic-bezier(0.22, 1, 0.36, 1)',
           immediateRender: false,
         }
       )
@@ -101,7 +112,7 @@ export default function PetProfile({ pet }: PetProfileProps) {
           {INFO_ITEMS.map((item) => (
             <div
               key={item.key}
-              className="info-card bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 hover:shadow-md hover:border-amber-200 transition-all duration-200"
+              className="info-card bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 hover:shadow-md hover:border-amber-200 transition-shadow duration-200"
             >
               <div className="text-2xl mb-1">{item.icon}</div>
               <div className="text-xs text-amber-500 font-semibold uppercase tracking-wide mb-0.5">
