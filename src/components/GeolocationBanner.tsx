@@ -106,7 +106,7 @@ export default function GeolocationBanner({ petName, petId }: GeolocationBannerP
 
   return (
     <div
-      className={`geo-banner fixed top-0 left-0 right-0 z-50 ${config.bg} text-white px-4 py-3 flex items-center justify-between gap-3 shadow-lg`}
+      className={`geo-banner fixed top-0 left-0 right-0 z-50 ${config.bg} text-white px-4 py-2 flex items-center justify-between gap-3 shadow-lg`}
     >
       <div className="flex items-center gap-2 min-w-0">
         <span className="text-lg flex-shrink-0">{config.icon}</span>

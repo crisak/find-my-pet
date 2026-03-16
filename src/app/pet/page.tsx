@@ -49,8 +49,7 @@ export default async function PetPage({ searchParams }: PageProps) {
         <GeolocationBanner petName={pet.name} petId={pet.id} />
       </Suspense>
 
-      {/* pt-11 accounts for the geolocation banner height (44px) */}
-      <div className="pt-11">
+      <div>
         <HeroSection pet={pet} />
         <CinematicSection pet={pet} />
         <PhotoGallery pet={pet} />

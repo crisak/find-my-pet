@@ -37,6 +37,30 @@ body {
   animation: heartbeat 1.5s ease-in-out infinite;
 }
 
+/* ─── Glassmorphism ripple effect ───────────────────────── */
+@keyframes glassmorphic-ripple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+.contact-button-ripple {
+  animation: glassmorphic-ripple 0.6s ease-out;
+}
+
+/* ─── Scroll-driven reduction ───────────────────────────── */
+@keyframes scale-down-smooth {
+  to {
+    transform: scale(0.93);
+  }
+}
+
 /* ─── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;

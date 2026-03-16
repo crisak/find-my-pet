@@ -68,7 +68,7 @@ function HeroOverlay({
       <div className="flex-1" />
 
       {/* Bottom: name + message card */}
-      <div className="relative z-20 px-4 pb-6 flex flex-col gap-3 max-w-lg mx-auto w-full">
+      <div className="relative z-20 px-4 pb-24 md:pb-6 flex flex-col gap-3 max-w-lg mx-auto w-full">
         <div ref={overlayContentRef} className="px-1">
           <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.18em] mb-1">
             {pet.breed} · {pet.age}
