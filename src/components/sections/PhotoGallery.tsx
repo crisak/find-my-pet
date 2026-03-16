@@ -31,23 +31,26 @@ function Lightbox({
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex < photos.length - 1
 
-  const animateSlide = useCallback((direction: 'prev' | 'next') => {
-    if (prefersReducedMotion.current || !contentRef.current) return
+  const goTo = useCallback((index: number) => {
+    if (!contentRef.current) { setCurrentIndex(index); return }
+    if (prefersReducedMotion.current) { setCurrentIndex(index); return }
+
+    const direction = index > currentIndex ? 'next' : 'prev'
     const xOut = direction === 'next' ? -30 : 30
     const xIn = direction === 'next' ? 30 : -30
-    gsap.fromTo(contentRef.current,
-      { opacity: 1, x: 0 },
-      { opacity: 0, x: xOut, duration: 0.15, ease: 'power2.in', onComplete: () => {
-        gsap.fromTo(contentRef.current, { opacity: 0, x: xIn }, { opacity: 1, x: 0, duration: 0.2, ease: 'cubic-bezier(0.22, 1, 0.36, 1)' })
-      }}
-    )
-  }, [])
 
-  const goTo = useCallback((index: number) => {
-    const direction = index > currentIndex ? 'next' : 'prev'
-    animateSlide(direction)
-    setCurrentIndex(index)
-  }, [currentIndex, animateSlide])
+    gsap.killTweensOf(contentRef.current)
+    gsap.to(contentRef.current, {
+      opacity: 0, x: xOut, duration: 0.15, ease: 'power2.in',
+      onComplete: () => {
+        setCurrentIndex(index)
+        gsap.fromTo(contentRef.current,
+          { opacity: 0, x: xIn },
+          { opacity: 1, x: 0, duration: 0.22, ease: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        )
+      }
+    })
+  }, [currentIndex])
 
   const goPrev = useCallback(() => { if (hasPrev) goTo(currentIndex - 1) }, [hasPrev, currentIndex, goTo])
   const goNext = useCallback(() => { if (hasNext) goTo(currentIndex + 1) }, [hasNext, currentIndex, goTo])
